@@ -26,6 +26,6 @@ end
 
 # build aws.yml from OpsWorks stack custom JSON e.g.
 # { "deploy": { "ripper_server": { "aws_yml_keys": { "access_key_id": "donttellanyone", "secret_access_key": "evenyourmother" } } } }
-node[:deploy].each do |application, deploy|
-  create_aws_yml(deploy[:aws_yml_keys], release_path)
-end
+# node[:deploy].each do |application, deploy|
+#   create_aws_yml(deploy[:aws_yml_keys], release_path)
+# end
