@@ -27,7 +27,6 @@ class RipperController < ApplicationController
   # POST /ripper/:youtube_id/:bucket_name
   # POST /ripper/:youtube_id/:bucket_name?no_audio=true
   def create
-puts params
     download_template = Dir.pwd+'/tmp/%(id)s.%(ext)s'
     begin
       # note, streaming std/err out is possible and explained in  http://blog.bigbinary.com/2012/10/18/backtick-system-exec-in-ruby.html
