@@ -22,5 +22,11 @@ module JukinRipper
     # The default locale is :en and all translations from config/locales/*.rb,yml are auto loaded.
     # config.i18n.load_path += Dir[Rails.root.join('my', 'locales', '*.{rb,yml}').to_s]
     # config.i18n.default_locale = :de
+    # soft-code customizations
+    config = YAML.load(File.read(File.expand_path('../application.yml', __FILE__)))
+    config.merge! config.fetch(Rails.env, {})
+    config.each do |key, value|
+      ENV[key] = value unless value.kind_of? Hash
+    end
   end
 end

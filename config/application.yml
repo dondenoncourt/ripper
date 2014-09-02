@@ -1,0 +1,12 @@
+development:
+  brightcove_write_token: 'UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RuT9bLvEu9cmrN_3UUSoSFg..'
+  brightcove_read_token: 'UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RLCVgD-05SxSB-fBlCb8c3Q..'
+
+test:
+  brightcove_write_token: 'UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RuT9bLvEu9cmrN_3UUSoSFg..'
+  brightcove_read_token: 'UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RLCVgD-05SxSB-fBlCb8c3Q..'
+
+production:
+  brightcove_write_token: 'UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RuT9bLvEu9cmrN_3UUSoSFg..'
+  brightcove_read_token: 'UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RLCVgD-05SxSB-fBlCb8c3Q..'
+
