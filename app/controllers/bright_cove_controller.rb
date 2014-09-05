@@ -33,4 +33,20 @@ class BrightCoveController < ApplicationController
     end
     render json: response
   end
+
+  # TODO replace video_id and remoteUrl and displayName
+  def thumbnail
+    json = {
+        image: {
+          type:"THUMBNAIL", #type:"VIDEO_STILL",
+          resize: "false", displayName:"display name",
+          remoteUrl: "http://cdnbakmi.kaltura.com/p/1321751/sp/132175100/thumbnail/entry_id/0_x1eiecb5/version/0"
+        },
+        video_id: 3767122068001
+    }
+    brightcove = Brightcove::API.new('UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RuT9bLvEu9cmrN_3UUSoSFg..')
+    response = brightcove.post('add_image', json)
+    render json: response
+  end
+
 end
