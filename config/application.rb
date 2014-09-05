@@ -1,11 +1,11 @@
 require File.expand_path('../boot', __FILE__)
 
 # disable ActiveRecord by requiring these 5 and commenting rails/all
-# require "action_controller/railtie"
-# require "action_mailer/railtie"
-# require "sprockets/railtie"
-# require "rails/test_unit/railtie"
-require 'rails/all'
+require "action_controller/railtie"
+require "action_mailer/railtie"
+require "sprockets/railtie"
+require "rails/test_unit/railtie"
+# require 'rails/all'
 
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
