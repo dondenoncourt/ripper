@@ -3,6 +3,7 @@ require 'open3'
 
 class RipperController < ApplicationController
   protect_from_forgery except: :create
+  before_filter :check_ajax_secret_key!, except: [:index, :show, :new]
 
   def index
     render text: 'index request'

@@ -1,12 +1,15 @@
 development:
   brightcove_write_token: 'UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RuT9bLvEu9cmrN_3UUSoSFg..'
   brightcove_read_token: 'UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RLCVgD-05SxSB-fBlCb8c3Q..'
+  ajax_secret_key: 'hzsdLMiP4QZHnAoMwiNKQZD9J'
 
 test:
   brightcove_write_token: 'UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RuT9bLvEu9cmrN_3UUSoSFg..'
   brightcove_read_token: 'UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RLCVgD-05SxSB-fBlCb8c3Q..'
+  ajax_secret_key: 'hzsdLMiP4QZHnAoMwiNKQZD9J'
 
 production:
   brightcove_write_token: 'UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RuT9bLvEu9cmrN_3UUSoSFg..'
   brightcove_read_token: 'UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RLCVgD-05SxSB-fBlCb8c3Q..'
+  ajax_secret_key: 'hzsdLMiP4QZHnAoMwiNKQZD9J'
 
