@@ -51,7 +51,7 @@ class RipperController < ApplicationController
         end
         logger.info "File.delete tmp/#{params[:youtube_id]}#{file_ext}"
         File.delete "tmp/#{params[:youtube_id]}#{file_ext}"
-        logger.inf0 "File.rename tmp/#{params[:youtube_id]}_no_audio#{file_ext}, tmp/#{params[:youtube_id]}#{file_ext}"
+        logger.info "File.rename tmp/#{params[:youtube_id]}_no_audio#{file_ext}, tmp/#{params[:youtube_id]}#{file_ext}"
         File.rename "tmp/#{params[:youtube_id]}_no_audio#{file_ext}", "tmp/#{params[:youtube_id]}#{file_ext}"
       end
       s3 = AWS::S3.new

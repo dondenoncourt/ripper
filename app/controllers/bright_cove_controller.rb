@@ -18,16 +18,34 @@ class BrightCoveController < ApplicationController
       raise ArgumentError, "S3 bucket called #{params[:bucket_name]} with key: #{s3_video_key} does not exist"
     end
 
-    File.open("./tmp/#{s3_video_key}", 'wb') do |file|
-      obj.read do |chunk|
-        file.write(chunk)
+    remote_attempts = 1..3
+
+    for i in remote_attempts
+      begin
+        File.open("./tmp/#{s3_video_key}", 'wb') do |file|
+          obj.read do |chunk|
+            file.write(chunk)
+          end
+        end
+        break
+      rescue
+        next if remote_attempts.include? i
+        raise
       end
     end
 
     brightcove = Brightcove::API.new(ENV['brightcove_write_token'])
-    response = brightcove.post_file('create_video', "./tmp/#{s3_video_key}",
-                                    create_multiple_renditions: true,
-                                    video: {shortDescription: "#{s3_video_key}", name: "#{s3_video_key}"})
+    for i in remote_attempts
+      begin
+        response = brightcove.post_file('create_video', "./tmp/#{s3_video_key}",
+                                        create_multiple_renditions: true,
+                                        video: {shortDescription: "#{s3_video_key}", name: "#{s3_video_key}"})
+        break
+      rescue
+        next if remote_attempts.include? i
+        raise
+      end
+    end
     if response['error'] != nil
       raise ArgumentError, response['error']
     end
