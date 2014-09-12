@@ -30,13 +30,17 @@ class BrightCoveController < ApplicationController
       logger.info "s3 #{s3_video_key} pulled locally"
 
       brightcove = Brightcove::API.new(ENV['brightcove_write_token'])
-      logger.info "brightcove.post_file #{s3_video_key} riff_id#{riff_video_id}"
+      logger.info "brightcove.post_file #{s3_video_key} #{riff_video_id}"
       response = brightcove.post_file('create_video', "./tmp/#{s3_video_key}",
           create_multiple_renditions: true,
           video: {referenceId: riff_video_id, shortDescription: s3_video_key, name: s3_video_key})
       if response['error'] != nil
         raise ArgumentError, response['error']
       end
+      puts response
+      video = Video.find(riff_video_id)
+      video.brightcove_video_id = response['result']
+      video.save
     end # Spawnling
     render json: {result: 'OK'}
   end

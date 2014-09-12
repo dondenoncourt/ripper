@@ -1,11 +1,11 @@
 default: &default
-  adapter: 'postgresql'
-  username: 'newjukin'
-  password: 'JHsc9tekvj'
-  database: 'jukinvideo'
-  host: 'newjukindev.cdrlveumgn4e.us-west-1.rds.amazonaws.com'
-  port: '5432'
-
+  adapter:   'postgresql'
+  username:  'newjukin'
+  password:  'JHsc9tekvj'
+  database:  'jukinvideo'
+  host:      'localhost'
+  port:      '5432'
+  reconnect: true
 
 development:
   <<: *default
@@ -17,5 +17,11 @@ test:
   <<: *default
 
 production:
-  <<: *default # for now...
+  adapter:   'postgresql'
+  username:  'newjukin'
+  password:  'JHsc9tekvj'
+  database:  'jukinvideo'
+  host:      'newjukindev.cdrlveumgn4e.us-west-1.rds.amazonaws.com'
+  port:      '5432'
+  reconnect: true
 
