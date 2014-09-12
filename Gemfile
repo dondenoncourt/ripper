@@ -7,5 +7,7 @@ gem 'aws-sdk', '1.6.3'
 # gem 'aws-sdk-core'
 gem 'multipart-post'
 gem 'brightcove-api'
-# gem 'pg'
+gem 'pg'
 # gem 'mysql2'
+
+gem 'spawnling', :git => 'git://github.com/tra/spawnling'
