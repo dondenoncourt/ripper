@@ -34,10 +34,12 @@ class BrightCoveController < ApplicationController
       response = brightcove.post_file('create_video', "./tmp/#{s3_video_key}",
           create_multiple_renditions: true,
           video: {referenceId: riff_video_id, shortDescription: s3_video_key, name: s3_video_key})
+      File.delete "#{Dir.pwd}/tmp/#{s3_video_key}"
       if response['error'] != nil
+        logger.error "POST of #{s3_video_key} #{riff_video_id} error: #{response.to_s}"
+        # TODO send error email as this is a background process and we can't return the error in the HTTP response
         raise ArgumentError, response['error']
       end
-      puts response
       video = Video.find(riff_video_id)
       video.brightcove_video_id = response['result']
       video.save
