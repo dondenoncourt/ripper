@@ -46,4 +46,10 @@ class BrightCoveController < ApplicationController
     end # Spawnling
     render json: {result: 'OK'}
   end
+
+  def transfer_from_kaltura
+    launch_command = " ruby  '#{Dir.pwd}/lib/migrations/kaltura_to_brightcove.rb'  & "
+    system launch_command
+    render text: launch_command
+  end
 end

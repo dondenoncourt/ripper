@@ -8,6 +8,11 @@ gem 'aws-sdk', '1.6.3'
 gem 'multipart-post'
 gem 'brightcove-api'
 gem 'pg'
-# gem 'mysql2'
+gem 'mysql2'
 
-gem 'spawnling', :git => 'git://github.com/tra/spawnling'
+gem 'spawnling', '~>2.1'
+# gem 'spawnling', :git => 'git://github.com/tra/spawnling'
+gem 'work_queue'
+
+# Spring speeds up development by keeping your application running in the background. Read more: https://github.com/rails/spring
+gem 'spring',        group: :development
