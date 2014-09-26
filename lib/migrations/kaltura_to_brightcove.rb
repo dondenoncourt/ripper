@@ -10,18 +10,19 @@ cds = {
     database: 'thedbjvcwecombo',
     username: 'mastercarrasaldo',
     password: 'Blue843853',
-    host: 'jukinvideodevelopment-don.ckoljqgt1piq.us-east-1.rds.amazonaws.com'
-    # host: 'jukinvideodevelopment2.ckoljqgt1piq.us-east-1.rds.amazonaws.com'
+    # host: 'jukinvideodevelopment-don.ckoljqgt1piq.us-east-1.rds.amazonaws.com'
+    host: 'jukinvideodevelopment2.ckoljqgt1piq.us-east-1.rds.amazonaws.com'
 }
 
 riff = {
     adapter: 'postgresql',
     database: 'jukinvideo',
-    host: 'localhost', # "newjukindev.cdrlveumgn4e.us-west-1.rds.amazonaws.com",
     username: 'newjukin',
     password: 'JHsc9tekvj',
     reconnect: true,
-    port: 5432
+    port: 5432,
+    # host: 'localhost',
+    host: "newjukindev.cdrlveumgn4e.us-west-1.rds.amazonaws.com"
 }
 
 class ExpChannelData < ActiveRecord::Base
