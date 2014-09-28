@@ -11,6 +11,8 @@
 /tmp
 /.idea
 
+*.log
+
 .DS_Store
 
 *.rbc

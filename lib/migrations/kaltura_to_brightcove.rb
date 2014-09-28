@@ -4,6 +4,11 @@ require 'work_queue'
 require 'active_record'
 require 'aws-sdk'
 require 'net/http'
+require 'logger'
+
+logger = Logger.new("./kaltura-to-brightcove.log")
+
+logger.warn "kaltura_to_brightcove.rb start"
 
 cds = {
     adapter: 'mysql2',
@@ -82,13 +87,13 @@ module Kernel
 end
 
 suppress_warnings do
-  puts " Videos count: #{Video.count}"
-  puts " Videos with brightcove_video_id: #{Video.where.not(brightcove_video_id: nil).count}"
-    kaltura_to_brightcove_last_sync = CdsRiffSync.kaltura_to_brightcove.last_sync
-  puts " CdsRiffSync.kaltura_to_brightcove.last_sync: #{CdsRiffSync.kaltura_to_brightcove.last_sync}"
-  puts "ExpKalturaVideo.with_channel_data.where(updated_at > ? , #{kaltura_to_brightcove_last_sync}).order('updated_at ASC').limit(100)"
+  logger.info " Videos count: #{Video.count}"
+  logger.info " Videos with brightcove_video_id: #{Video.where.not(brightcove_video_id: nil).count}"
+  kaltura_to_brightcove_last_sync = CdsRiffSync.kaltura_to_brightcove.last_sync
+  logger.info " CdsRiffSync.kaltura_to_brightcove.last_sync: #{CdsRiffSync.kaltura_to_brightcove.last_sync}"
+  logger.info "ExpKalturaVideo.with_channel_data.where(updated_at > ? , #{kaltura_to_brightcove_last_sync}).order('updated_at ASC').limit(100)"
   kaltura_videos_to_process = ExpKalturaVideo.with_channel_data.where("updated_at > ? ", kaltura_to_brightcove_last_sync).order('updated_at ASC').limit(100)
-  puts " ExpKalturaVideos to process: #{kaltura_videos_to_process.count}"
+  logger.info " ExpKalturaVideos to process: #{kaltura_videos_to_process.count}"
 
   # TODO: do based on updated_at and some kind of saved timestamp
   #       if it exists in Video, next? or maybe go ahead and replace in S3, which means delete in Brightcove and add again
@@ -101,17 +106,17 @@ suppress_warnings do
     entry_id = kaltura_video.exp_channel_data.entry_id
     riff_video = kaltura_video.exp_channel_data.riff_video
     if riff_video.nil?
-puts "\n>>>>>>>>> NO VIDEO for kaltura_video.id: #{kaltura_video.id} with: entry_id: #{entry_id} -- skipping"
+      logger.info "\n NO VIDEO for kaltura_video.id: #{kaltura_video.id} with: entry_id: #{entry_id} -- skipping"
       next
     end
     next if !riff_video.brightcove_video_id.nil?
     riff_video_id = riff_video.id
 
-    print "#{kaltura_video.id}:#{kaltura_video.exp_channel_data.entry_id}, "
+    # puts "#{kaltura_video.id}:#{kaltura_video.exp_channel_data.entry_id}, "
 
     work_queue.enqueue_b do
       kaltura_video_name = "kaltura#{kaltura_video.id}"
-puts "Kaltura download: #{kaltura_video.name} : #{kaltura_video.download_url}"
+      logger.info "Kaltura download: #{kaltura_video.name} : #{kaltura_video.download_url}"
       meta = nil
       begin
         File.open("tmp/#{kaltura_video_name}",'wb') do |saved_file|
@@ -125,21 +130,21 @@ puts "Kaltura download: #{kaltura_video.name} : #{kaltura_video.download_url}"
 
         full_path = "#{Dir.pwd}/tmp/#{name_with_suffix}"
         s3 = AWS::S3.new access_key_id: 'AKIAJMQ5TKXQLCVL5HJA', secret_access_key: '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'
-puts "S3 upload: #{full_path}"
+        logger.info "S3 upload: #{full_path}"
         s3.buckets[bucket_name].objects[name_with_suffix].write(Pathname.new(full_path))
 
         brightcove = Brightcove::API.new(brightcove_write_token)
-puts "Brightcove transfer: #{full_path}"
+        logger.info "Brightcove transfer: #{full_path}"
         response = brightcove.post_file('create_video', full_path,
                       create_multiple_renditions: true,
                       video: {referenceId: riff_video_id, shortDescription: "#{kaltura_video.description[0..249]}", name: "#{name_with_suffix}"}
         )
         if response['error'] != nil
-          puts "ERROR: POST of #{name_with_suffix} error: #{response.to_s}"
+          logger.info "ERROR: POST of #{name_with_suffix} error: #{response.to_s}"
           # raise ArgumentError, response['error']
           next
         end
-        puts response
+        logger.info response
         brightcove_video_id = response['result'].to_i
 
         riff_video = kaltura_video.exp_channel_data.riff_video # get again as minutes may have transpired
@@ -148,20 +153,20 @@ puts "Brightcove transfer: #{full_path}"
           riff_video.master_s3_uri = "/#{bucket_name}/#{name_with_suffix}"
           riff_video.save
         end
-        puts "brightcove_video_id set to #{brightcove_video_id}"
+        logger.info "brightcove_video_id set to #{brightcove_video_id}"
 
         kaltura_to_brightcove = CdsRiffSync.kaltura_to_brightcove
         kaltura_to_brightcove.last_sync = kaltura_video.updated_time
         kaltura_to_brightcove.save
 
-        # puts response # which has the brightcove_video_id
+        logger.info response # which has the brightcove_video_id
         File.delete full_path
       rescue Exception => e
-        puts e
+        logger.error e
         exit
       end
 
-      puts "push thumbnail: #{kaltura_video.thumbnail_url}"
+      logger.info "push thumbnail: #{kaltura_video.thumbnail_url}"
       brightcove = Brightcove::API.new('UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RuT9bLvEu9cmrN_3UUSoSFg..')
       response = brightcove.post('add_image',
         thumbnail_json = {
@@ -174,9 +179,9 @@ puts "Brightcove transfer: #{full_path}"
         }
       )
       if response['error'] != nil
-        puts "WARNING: thumbnail update of #{name_with_suffix} failed: #{response.to_s}"
+        logger.error "WARNING: thumbnail update of #{name_with_suffix} failed: #{response.to_s}"
       end
-      # puts response
+      logger.info response
 
     end # enqueue
 
@@ -186,4 +191,4 @@ puts "Brightcove transfer: #{full_path}"
 
 end # suppress_warnings
 
-puts ">>>>>>>>>>>>> Kaltura to Brightcove migration completed "
+logger.info  "Kaltura to Brightcove migration completed "
