@@ -11,6 +11,9 @@ class BrightCoveController < ApplicationController
     s3_video_key = "#{params[:s3_video_key]}.#{params[:format]}"
     riff_video_id = params[:riff_video_id]
     s3 = AWS::S3.new
+    AWS::S3.new(
+        :access_key_id => 'YOUR_ACCESS_KEY_ID',
+        :secret_access_key => 'YOUR_SECRET_ACCESS_KEY')
     bucket = s3.buckets[params[:bucket_name]]
     if !bucket.exists?
       raise ArgumentError, "S3 bucket called #{params[:bucket_name]} does not exist"

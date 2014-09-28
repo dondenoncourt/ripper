@@ -2,6 +2,8 @@ require 'open-uri'
 require 'brightcove-api'
 require 'work_queue'
 require 'active_record'
+require 'aws-sdk'
+require 'net/http'
 
 cds = {
     adapter: 'mysql2',
@@ -21,7 +23,7 @@ riff = {
     password: 'JHsc9tekvj',
     reconnect: true,
     port: 5432,
-    # host: 'localhost',
+    # host: 'localhost'
     host: "newjukindev.cdrlveumgn4e.us-west-1.rds.amazonaws.com"
 }
 
@@ -34,17 +36,23 @@ ExpChannelData.establish_connection(cds)
 class ExpKalturaVideo < ActiveRecord::Base
   self.primary_key = :kaltura_video_id
   has_one :exp_channel_data, foreign_key: :field_id_303
+  has_one :exp_channel_video, foreign_key: :entry_id, through: :exp_channel_data
   def self.with_channel_data
     # need a dummy where to force load to work (as it uses a LEFT JOIN and where forces a row)
     ExpKalturaVideo.eager_load(:exp_channel_data).where("exp_channel_data.entry_id IS NOT NULL")
   end
-
   def updated_time
     Time.at(updated_at)
   end
 end
 ExpKalturaVideo.establish_connection(cds)
-
+class CdsRiffSync < ActiveRecord::Base
+  self.table_name = 'cds_riff_sync'
+  def self.kaltura_to_brightcove
+    CdsRiffSync.where(sync_type: 'KalturaToBrightcove').first
+  end
+end
+CdsRiffSync.establish_connection(cds)
 
 class Video < ActiveRecord::Base; self.table_name = 'video'; end
 Video.establish_connection(riff)
@@ -76,7 +84,10 @@ end
 suppress_warnings do
   puts " Videos count: #{Video.count}"
   puts " Videos with brightcove_video_id: #{Video.where.not(brightcove_video_id: nil).count}"
-  kaltura_videos_to_process = ExpKalturaVideo.with_channel_data.where("updated_at > ? ", Time.now.to_i-10.days).order('updated_at ASC').limit(233)
+    kaltura_to_brightcove_last_sync = CdsRiffSync.kaltura_to_brightcove.last_sync
+  puts " CdsRiffSync.kaltura_to_brightcove.last_sync: #{CdsRiffSync.kaltura_to_brightcove.last_sync}"
+  puts "ExpKalturaVideo.with_channel_data.where(updated_at > ? , #{kaltura_to_brightcove_last_sync}).order('updated_at ASC').limit(100)"
+  kaltura_videos_to_process = ExpKalturaVideo.with_channel_data.where("updated_at > ? ", kaltura_to_brightcove_last_sync).order('updated_at ASC').limit(100)
   puts " ExpKalturaVideos to process: #{kaltura_videos_to_process.count}"
 
   # TODO: do based on updated_at and some kind of saved timestamp
@@ -88,13 +99,13 @@ suppress_warnings do
   kaltura_videos_to_process.each do |kaltura_video|
 
     entry_id = kaltura_video.exp_channel_data.entry_id
-    video = kaltura_video.exp_channel_data.riff_video
-    if video.nil?
-      # puts "\n>>>>>>>>> NO VIDEO for kaltura_video.id: #{kaltura_video.id} with: entry_id: #{kaltura_video.exp_channel_data.entry_id} -- skipping"
+    riff_video = kaltura_video.exp_channel_data.riff_video
+    if riff_video.nil?
+puts "\n>>>>>>>>> NO VIDEO for kaltura_video.id: #{kaltura_video.id} with: entry_id: #{entry_id} -- skipping"
       next
     end
-    next if !video.brightcove_video_id.nil?
-    riff_video_id = video.id
+    next if !riff_video.brightcove_video_id.nil?
+    riff_video_id = riff_video.id
 
     print "#{kaltura_video.id}:#{kaltura_video.exp_channel_data.entry_id}, "
 
@@ -102,43 +113,53 @@ suppress_warnings do
       kaltura_video_name = "kaltura#{kaltura_video.id}"
 puts "Kaltura download: #{kaltura_video.name} : #{kaltura_video.download_url}"
       meta = nil
-      File.open("tmp/#{kaltura_video_name}",'wb') do |saved_file|
-        open(kaltura_video.download_url, "rb") do |read_file|
-          meta = read_file.meta
-          saved_file.write(read_file.read)
+      begin
+        File.open("tmp/#{kaltura_video_name}",'wb') do |saved_file|
+          open(kaltura_video.download_url, "rb") do |read_file|
+            meta = read_file.meta
+            saved_file.write(read_file.read)
+          end
         end
-      end
-      name_with_suffix = "#{kaltura_video_name}.#{video_formats[meta['content-type']]}"
-      File.rename "tmp/#{kaltura_video_name}", "tmp/#{name_with_suffix}"
+        name_with_suffix = "#{kaltura_video_name}.#{video_formats[meta['content-type']]}"
+        File.rename "#{Dir.pwd}/tmp/#{kaltura_video_name}", "#{Dir.pwd}/tmp/#{name_with_suffix}"
 
-      full_path = "#{Dir.pwd}/tmp/#{name_with_suffix}"
-      s3 = AWS::S3.new
+        full_path = "#{Dir.pwd}/tmp/#{name_with_suffix}"
+        s3 = AWS::S3.new access_key_id: 'AKIAJMQ5TKXQLCVL5HJA', secret_access_key: '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'
 puts "S3 upload: #{full_path}"
-      s3.buckets[bucket_name].objects[name_with_suffix].write(Pathname.new(full_path))
+        s3.buckets[bucket_name].objects[name_with_suffix].write(Pathname.new(full_path))
 
-      brightcove = Brightcove::API.new(brightcove_write_token)
+        brightcove = Brightcove::API.new(brightcove_write_token)
 puts "Brightcove transfer: #{full_path}"
-      response = brightcove.post_file('create_video', full_path,
-                    create_multiple_renditions: true,
-                    video: {referenceId: riff_video_id, shortDescription: "#{kaltura_video.description[0..249]}", name: "#{name_with_suffix}"}
-      )
-      if response['error'] != nil
-        puts "ERROR: POST of #{name_with_suffix} error: #{response.to_s}"
-        # raise ArgumentError, response['error']
-        next
-      end
-      puts response
-      brightcove_video_id = response['result'].to_i
-      riff_video = Video.where(entry_id: entry_id).first
-      if riff_video != nil
-        riff_video.brightcove_video_id = brightcove_video_id
-        riff_video.master_s3_uri = "/#{bucket_name}/#{name_with_suffix}"
-        riff_video.save
-      end
-      puts "brightcove_video_id set to #{brightcove_video_id}"
+        response = brightcove.post_file('create_video', full_path,
+                      create_multiple_renditions: true,
+                      video: {referenceId: riff_video_id, shortDescription: "#{kaltura_video.description[0..249]}", name: "#{name_with_suffix}"}
+        )
+        if response['error'] != nil
+          puts "ERROR: POST of #{name_with_suffix} error: #{response.to_s}"
+          # raise ArgumentError, response['error']
+          next
+        end
+        puts response
+        brightcove_video_id = response['result'].to_i
 
-      # puts response # which has the brightcove_video_id
-      File.delete full_path
+        riff_video = kaltura_video.exp_channel_data.riff_video # get again as minutes may have transpired
+        if riff_video != nil
+          riff_video.brightcove_video_id = brightcove_video_id
+          riff_video.master_s3_uri = "/#{bucket_name}/#{name_with_suffix}"
+          riff_video.save
+        end
+        puts "brightcove_video_id set to #{brightcove_video_id}"
+
+        kaltura_to_brightcove = CdsRiffSync.kaltura_to_brightcove
+        kaltura_to_brightcove.last_sync = kaltura_video.updated_time
+        kaltura_to_brightcove.save
+
+        # puts response # which has the brightcove_video_id
+        File.delete full_path
+      rescue Exception => e
+        puts e
+        exit
+      end
 
       puts "push thumbnail: #{kaltura_video.thumbnail_url}"
       brightcove = Brightcove::API.new('UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RuT9bLvEu9cmrN_3UUSoSFg..')
