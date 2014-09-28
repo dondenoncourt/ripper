@@ -6,7 +6,7 @@ require 'aws-sdk'
 require 'net/http'
 require 'logger'
 
-logger = Logger.new("./kaltura-to-brightcove.log")
+logger = Logger.new("./kaltura-to-brightcove.log", 10, 1024*1024)
 
 logger.warn "kaltura_to_brightcove.rb start"
 
