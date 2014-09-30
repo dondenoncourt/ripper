@@ -17,8 +17,8 @@ cds = {
     database: 'thedbjvcwecombo',
     username: 'mastercarrasaldo',
     password: 'Blue843853',
-    # host: 'jukinvideodevelopment-don.ckoljqgt1piq.us-east-1.rds.amazonaws.com'
-    host: 'jukinvideodevelopment2.ckoljqgt1piq.us-east-1.rds.amazonaws.com'
+    host: 'jukinvideodevelopment-don.ckoljqgt1piq.us-east-1.rds.amazonaws.com'
+    # host: 'jukinvideodevelopment2.ckoljqgt1piq.us-east-1.rds.amazonaws.com'
 }
 
 riff = {
@@ -28,8 +28,8 @@ riff = {
     password: 'JHsc9tekvj',
     reconnect: true,
     port: 5432,
-    # host: 'localhost'
-    host: "newjukindev.cdrlveumgn4e.us-west-1.rds.amazonaws.com"
+    host: 'localhost'
+    # host: "newjukindev.cdrlveumgn4e.us-west-1.rds.amazonaws.com"
 }
 
 class ExpChannelData < ActiveRecord::Base
@@ -51,16 +51,16 @@ class ExpKalturaVideo < ActiveRecord::Base
   end
 end
 ExpKalturaVideo.establish_connection(cds)
+
+class Video < ActiveRecord::Base; self.table_name = 'video'; end
+Video.establish_connection(riff)
 class CdsRiffSync < ActiveRecord::Base
   self.table_name = 'cds_riff_sync'
   def self.kaltura_to_brightcove
     CdsRiffSync.where(sync_type: 'KalturaToBrightcove').first
   end
 end
-CdsRiffSync.establish_connection(cds)
-
-class Video < ActiveRecord::Base; self.table_name = 'video'; end
-Video.establish_connection(riff)
+CdsRiffSync.establish_connection(riff)
 
 video_formats = {
     'video/avi' => 'avi', # Covers most Windows-compatible formats including .avi and .divx[16]
@@ -74,7 +74,7 @@ video_formats = {
 }
 brightcove_write_token = 'UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RuT9bLvEu9cmrN_3UUSoSFg..'
 bucket_name = 'jukinvideo_unit_tests'
-work_queue = WorkQueue.new 2
+work_queue = WorkQueue.new 6
 
 module Kernel
   def suppress_warnings
@@ -91,7 +91,7 @@ suppress_warnings do
   logger.info " Videos with brightcove_video_id: #{Video.where.not(brightcove_video_id: nil).count}"
   kaltura_to_brightcove_last_sync = CdsRiffSync.kaltura_to_brightcove.last_sync
   logger.info " CdsRiffSync.kaltura_to_brightcove.last_sync: #{CdsRiffSync.kaltura_to_brightcove.last_sync}"
-  logger.info "ExpKalturaVideo.with_channel_data.where(updated_at > ? , #{kaltura_to_brightcove_last_sync}).order('updated_at ASC').limit(100)"
+  logger.info "ExpKalturaVideo.with_channel_data.where(updated_at > ? , #{kaltura_to_brightcove_last_sync}).order('updated_at ASC').limit(8)"
   kaltura_videos_to_process = ExpKalturaVideo.with_channel_data.where("updated_at > ? ", kaltura_to_brightcove_last_sync).order('updated_at ASC').limit(100)
   logger.info " ExpKalturaVideos to process: #{kaltura_videos_to_process.count}"
 
@@ -109,7 +109,6 @@ suppress_warnings do
       logger.info "\n NO VIDEO for kaltura_video.id: #{kaltura_video.id} with: entry_id: #{entry_id} -- skipping"
       next
     end
-    next if !riff_video.brightcove_video_id.nil?
     riff_video_id = riff_video.id
 
     # puts "#{kaltura_video.id}:#{kaltura_video.exp_channel_data.entry_id}, "
@@ -119,69 +118,75 @@ suppress_warnings do
       logger.info "Kaltura download: #{kaltura_video.name} : #{kaltura_video.download_url}"
       meta = nil
       begin
-        File.open("tmp/#{kaltura_video_name}",'wb') do |saved_file|
-          open(kaltura_video.download_url, "rb") do |read_file|
-            meta = read_file.meta
-            saved_file.write(read_file.read)
+        if riff_video.brightcove_video_id.nil? # only transfer if it was yet transferred
+          File.open("tmp/#{kaltura_video_name}",'wb') do |saved_file|
+            open(kaltura_video.download_url, "rb") do |read_file|
+              meta = read_file.meta
+              saved_file.write(read_file.read)
+            end
           end
-        end
-        name_with_suffix = "#{kaltura_video_name}.#{video_formats[meta['content-type']]}"
-        File.rename "#{Dir.pwd}/tmp/#{kaltura_video_name}", "#{Dir.pwd}/tmp/#{name_with_suffix}"
+          name_with_suffix = "#{kaltura_video_name}.#{video_formats[meta['content-type']]}"
+          File.rename "#{Dir.pwd}/tmp/#{kaltura_video_name}", "#{Dir.pwd}/tmp/#{name_with_suffix}"
 
-        full_path = "#{Dir.pwd}/tmp/#{name_with_suffix}"
-        s3 = AWS::S3.new access_key_id: 'AKIAJMQ5TKXQLCVL5HJA', secret_access_key: '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'
-        logger.info "S3 upload: #{full_path}"
-        s3.buckets[bucket_name].objects[name_with_suffix].write(Pathname.new(full_path))
+          full_path = "#{Dir.pwd}/tmp/#{name_with_suffix}"
+          s3 = AWS::S3.new access_key_id: 'AKIAJMQ5TKXQLCVL5HJA', secret_access_key: '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'
+          logger.info "S3 upload: #{full_path}"
+          s3.buckets[bucket_name].objects[name_with_suffix].write(Pathname.new(full_path))
 
-        brightcove = Brightcove::API.new(brightcove_write_token)
-        logger.info "Brightcove transfer: #{full_path}"
-        response = brightcove.post_file('create_video', full_path,
-                      create_multiple_renditions: true,
-                      video: {referenceId: riff_video_id, shortDescription: "#{kaltura_video.description[0..249]}", name: "#{name_with_suffix}"}
-        )
-        if response['error'] != nil
-          logger.info "ERROR: POST of #{name_with_suffix} error: #{response.to_s}"
-          # raise ArgumentError, response['error']
-          next
-        end
-        logger.info response
-        brightcove_video_id = response['result'].to_i
+          brightcove = Brightcove::API.new(brightcove_write_token)
+          logger.info "Brightcove transfer: #{full_path}"
+          response = brightcove.post_file('create_video', full_path,
+                        create_multiple_renditions: true,
+                        video: {referenceId: riff_video_id, shortDescription: "#{kaltura_video.description[0..249]}", name: "#{name_with_suffix}"}
+          )
+          if response['error'] != nil
+            logger.error "ERROR: POST of #{name_with_suffix} error: #{response.to_s}"
+            next
+          end
+          logger.info response
+          brightcove_video_id = response['result'].to_i
 
-        riff_video = kaltura_video.exp_channel_data.riff_video # get again as minutes may have transpired
-        if riff_video != nil
-          riff_video.brightcove_video_id = brightcove_video_id
-          riff_video.master_s3_uri = "/#{bucket_name}/#{name_with_suffix}"
-          riff_video.save
-        end
-        logger.info "brightcove_video_id set to #{brightcove_video_id}"
+          riff_video = kaltura_video.exp_channel_data.riff_video # get again as minutes may have transpired
+          if riff_video != nil
+            riff_video.brightcove_video_id = brightcove_video_id
+            riff_video.master_s3_uri = "/#{bucket_name}/#{name_with_suffix}"
+            riff_video.save
+          end
+          logger.info "brightcove_video_id set to #{brightcove_video_id}"
 
-        kaltura_to_brightcove = CdsRiffSync.kaltura_to_brightcove
-        kaltura_to_brightcove.last_sync = kaltura_video.updated_time
-        kaltura_to_brightcove.save
+          kaltura_to_brightcove = CdsRiffSync.kaltura_to_brightcove
+          kaltura_to_brightcove.last_sync = kaltura_video.updated_time
+          kaltura_to_brightcove.save
 
-        logger.info response # which has the brightcove_video_id
-        File.delete full_path
+          logger.info response # which has the brightcove_video_id
+          File.delete full_path
+        end # if riff_video.brightcove_video_id.nil?
       rescue Exception => e
         logger.error e
         exit
       end
 
-      logger.info "push thumbnail: #{kaltura_video.thumbnail_url}"
-      brightcove = Brightcove::API.new('UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RuT9bLvEu9cmrN_3UUSoSFg..')
-      response = brightcove.post('add_image',
-        thumbnail_json = {
-          image: {
-            type:"THUMBNAIL", #type:"VIDEO_STILL",
-            resize: "false", displayName: "#{kaltura_video_name}",
-            remoteUrl: "#{kaltura_video.thumbnail_url}"
-          },
-          video_id: brightcove_video_id
-        }
-      )
-      if response['error'] != nil
-        logger.error "WARNING: thumbnail update of #{name_with_suffix} failed: #{response.to_s}"
-      end
-      logger.info response
+      # logger.info "push thumbnail: #{kaltura_video.thumbnail_url}"
+      # begin
+      #   brightcove = Brightcove::API.new('UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RuT9bLvEu9cmrN_3UUSoSFg..')
+      #   response = brightcove.post('add_image',
+      #     thumbnail_json = {
+      #       image: {
+      #         type:"THUMBNAIL", #type:"VIDEO_STILL",
+      #         resize: "false", displayName: "#{kaltura_video_name}",
+      #         remoteUrl: "#{kaltura_video.thumbnail_url}"
+      #       },
+      #       video_id: riff_video.brightcove_video_id
+      #     }
+      #   )
+      #   if response['error'] != nil
+      #     logger.error "WARNING: thumbnail update of #{name_with_suffix} failed: #{response.to_s}"
+      #   end
+      #   logger.info response
+      # rescue Exception => e
+      #   logger.error e
+      #   exit
+      # end
 
     end # enqueue
 
