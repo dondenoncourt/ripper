@@ -74,7 +74,7 @@ video_formats = {
 }
 brightcove_write_token = 'UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RuT9bLvEu9cmrN_3UUSoSFg..'
 bucket_name = 'jukinvideo_unit_tests'
-work_queue = WorkQueue.new 6
+work_queue = WorkQueue.new 1
 
 module Kernel
   def suppress_warnings
@@ -166,27 +166,27 @@ suppress_warnings do
         exit
       end
 
-      # logger.info "push thumbnail: #{kaltura_video.thumbnail_url}"
-      # begin
-      #   brightcove = Brightcove::API.new('UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RuT9bLvEu9cmrN_3UUSoSFg..')
-      #   response = brightcove.post('add_image',
-      #     thumbnail_json = {
-      #       image: {
-      #         type:"THUMBNAIL", #type:"VIDEO_STILL",
-      #         resize: "false", displayName: "#{kaltura_video_name}",
-      #         remoteUrl: "#{kaltura_video.thumbnail_url}"
-      #       },
-      #       video_id: riff_video.brightcove_video_id
-      #     }
-      #   )
-      #   if response['error'] != nil
-      #     logger.error "WARNING: thumbnail update of #{name_with_suffix} failed: #{response.to_s}"
-      #   end
-      #   logger.info response
-      # rescue Exception => e
-      #   logger.error e
-      #   exit
-      # end
+      logger.info "push thumbnail: #{kaltura_video.thumbnail_url}"
+      begin
+        brightcove = Brightcove::API.new('UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RuT9bLvEu9cmrN_3UUSoSFg..')
+        response = brightcove.post('add_image',
+          thumbnail_json = {
+            image: {
+              type:"THUMBNAIL", #type:"VIDEO_STILL",
+              resize: "false", displayName: "#{kaltura_video_name}",
+              remoteUrl: "#{kaltura_video.thumbnail_url}"
+            },
+            video_id: riff_video.brightcove_video_id
+          }
+        )
+        if response['error'] != nil
+          logger.error "WARNING: thumbnail update of #{name_with_suffix} failed: #{response.to_s}"
+        end
+        logger.info response
+      rescue Exception => e
+        logger.error e
+        exit
+      end
 
     end # enqueue
 
