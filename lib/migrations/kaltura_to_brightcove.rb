@@ -1,10 +1,10 @@
 require 'open-uri'
 require 'brightcove-api'
 require 'work_queue'
-require 'active_record'
 require 'aws-sdk'
 require 'net/http'
 require 'logger'
+require 'active_record'
 
 logger = Logger.new("./kaltura-to-brightcove.log", 10, 1024*1024)
 
@@ -18,7 +18,8 @@ cds = {
     username: 'mastercarrasaldo',
     password: 'Blue843853',
     # host: 'jukinvideodevelopment-don.ckoljqgt1piq.us-east-1.rds.amazonaws.com'
-    host: 'jukinvideodevelopment2.ckoljqgt1piq.us-east-1.rds.amazonaws.com'
+    # host: 'jukinvideodevelopment2.ckoljqgt1piq.us-east-1.rds.amazonaws.com'
+    host: 'jukinvideodevelopment11.cdrlveumgn4e.us-west-1.rds.amazonaws.com'
 }
 
 riff = {
