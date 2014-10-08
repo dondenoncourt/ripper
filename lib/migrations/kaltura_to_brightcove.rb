@@ -96,7 +96,7 @@ suppress_warnings do
   logger.info " Videos with brightcove_video_id: #{Video.where.not(brightcove_video_id: nil).count}"
   kaltura_to_brightcove_last_sync = CdsRiffSync.kaltura_to_brightcove.last_sync
   logger.info " CdsRiffSync.kaltura_to_brightcove.last_sync: #{CdsRiffSync.kaltura_to_brightcove.last_sync}"
-  kaltura_videos_to_process = ExpKalturaVideo.with_channel_data.where("updated_at > ? ", kaltura_to_brightcove_last_sync).order('updated_at ASC').limit(2)
+  kaltura_videos_to_process = ExpKalturaVideo.with_channel_data.where("updated_at > ? ", kaltura_to_brightcove_last_sync).order('updated_at ASC').limit(10)
   logger.info " ExpKalturaVideos to process: #{kaltura_videos_to_process.count}"
 
   kaltura_videos_to_process.each do |kaltura_video|
