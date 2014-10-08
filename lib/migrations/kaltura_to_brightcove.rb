@@ -17,9 +17,9 @@ cds = {
     database: 'thedbjvcwecombo',
     username: 'mastercarrasaldo',
     password: 'Blue843853',
-    # host: 'jukinvideodevelopment-don.ckoljqgt1piq.us-east-1.rds.amazonaws.com'
-    # host: 'jukinvideodevelopment2.ckoljqgt1piq.us-east-1.rds.amazonaws.com'
-    host: 'jukinvideodevelopment11.cdrlveumgn4e.us-west-1.rds.amazonaws.com'
+    # host: 'jukinvideodevelopment-don.ckoljqgt1piq.us-east-1.rds.amazonaws.com' # don
+    # host: 'jukinvideodevelopment11.cdrlveumgn4e.us-west-1.rds.amazonaws.com' # test
+    host: 'jukinvideodbinstance2.cdrlveumgn4e.us-west-1.rds.amazonaws.com'   # dev2
 }
 
 riff = {
@@ -30,7 +30,9 @@ riff = {
     reconnect: true,
     port: 5432,
     # host: 'localhost'
-    host: "newjukindev.cdrlveumgn4e.us-west-1.rds.amazonaws.com"
+    # host: "newjukindev.cdrlveumgn4e.us-west-1.rds.amazonaws.com" # test
+    host: 'newjukingm1.cdrlveumgn4e.us-west-1.rds.amazonaws.com' # dev2
+    # host: 'newjukinprod.cdrlveumgn4e.us-west-1.rds.amazonaws.com' # prod (real prod)
 }
 
 class ExpChannelData < ActiveRecord::Base
@@ -73,7 +75,9 @@ video_formats = {
     'video/x-ms-wmv' => 'wmv', # Windows Media Video; Documented in Microsoft KB 288102
     'video/x-flv' => 'flv' # Flash video (FLV files)
 }
-brightcove_write_token = 'UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RuT9bLvEu9cmrN_3UUSoSFg..'
+# note: this is also in application.yml
+# to find in Brightcove, go to Account Settings > API Management
+brightcove_write_token = 'C9gRFSOKF0rsirAqGPHdW-OBtt2Xc6vjsXJ43INEhkW4IfSlbD1sdg..'
 bucket_name = 'jukinvideo_unit_tests'
 work_queue = WorkQueue.new 1
 
@@ -92,15 +96,8 @@ suppress_warnings do
   logger.info " Videos with brightcove_video_id: #{Video.where.not(brightcove_video_id: nil).count}"
   kaltura_to_brightcove_last_sync = CdsRiffSync.kaltura_to_brightcove.last_sync
   logger.info " CdsRiffSync.kaltura_to_brightcove.last_sync: #{CdsRiffSync.kaltura_to_brightcove.last_sync}"
-  logger.info "ExpKalturaVideo.with_channel_data.where(updated_at > ? , #{kaltura_to_brightcove_last_sync}).order('updated_at ASC').limit(8)"
-  kaltura_videos_to_process = ExpKalturaVideo.with_channel_data.where("updated_at > ? ", kaltura_to_brightcove_last_sync).order('updated_at ASC').limit(100)
+  kaltura_videos_to_process = ExpKalturaVideo.with_channel_data.where("updated_at > ? ", kaltura_to_brightcove_last_sync).order('updated_at ASC').limit(2)
   logger.info " ExpKalturaVideos to process: #{kaltura_videos_to_process.count}"
-
-  # TODO: do based on updated_at and some kind of saved timestamp
-  #       if it exists in Video, next? or maybe go ahead and replace in S3, which means delete in Brightcove and add again
-  # CdsDataAccessService::getAllCdsEntryIds suggest that only channel_titles with channel_videos get to RIFF:
-  # SELECT t.entry_id as entryId FROM exp_channel_titles t JOIN exp_channel_videos v ON t.entry_id = v.entry_id ORDER BY t.entry_id DESC
-  # a problem may be that if there is a exp_kaltura_video there may not be a exp_channel_video
 
   kaltura_videos_to_process.each do |kaltura_video|
 

@@ -24,7 +24,9 @@ production:
   username:  'newjukin'
   password:  'JHsc9tekvj'
   database:  'jukinvideo'
-  host:      'newjukindev.cdrlveumgn4e.us-west-1.rds.amazonaws.com'
+  host: 'newjukingm1.cdrlveumgn4e.us-west-1.rds.amazonaws.com' # dev2
+#  host: 'newjukindev.cdrlveumgn4e.us-west-1.rds.amazonaws.com' # test
+#  host: 'newjukinprod.cdrlveumgn4e.us-west-1.rds.amazonaws.com' # prod (real prod)
   port:      '5432'
   reconnect: true
 

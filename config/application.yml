@@ -1,16 +1,20 @@
+# note: brightcove write token is also in kaltura_to_brightcove.rb
+# to find tokens in Brightcove, go to Account Settings > API Management
+
 development:
   brightcove_write_token: 'C9gRFSOKF0rsirAqGPHdW-OBtt2Xc6vjsXJ43INEhkW4IfSlbD1sdg..'
-  brightcove_read_token: 'C9gRFSOKF0rsirAqGPHdW-OBtt2Xc6vjUo9gBJsoRrL5m3cejTY11A..'
+  brightcove_read_token:  'C9gRFSOKF0rsirAqGPHdW-OBtt2Xc6vjUo9gBJsoRrL5m3cejTY11A..'
   ajax_secret_key: 'hzsdLMiP4QZHnAoMwiNKQZD9J'
 
 test:
   brightcove_write_token: 'C9gRFSOKF0rsirAqGPHdW-OBtt2Xc6vjsXJ43INEhkW4IfSlbD1sdg..'
-  brightcove_read_token: 'C9gRFSOKF0rsirAqGPHdW-OBtt2Xc6vjUo9gBJsoRrL5m3cejTY11A..'
+  brightcove_read_token:  'C9gRFSOKF0rsirAqGPHdW-OBtt2Xc6vjUo9gBJsoRrL5m3cejTY11A..'
   ajax_secret_key: 'hzsdLMiP4QZHnAoMwiNKQZD9J'
 
 production:
   brightcove_write_token: 'C9gRFSOKF0rsirAqGPHdW-OBtt2Xc6vjsXJ43INEhkW4IfSlbD1sdg..'
-  brightcove_read_token: 'C9gRFSOKF0rsirAqGPHdW-OBtt2Xc6vjUo9gBJsoRrL5m3cejTY11A..'
+  brightcove_read_token:  'C9gRFSOKF0rsirAqGPHdW-OBtt2Xc6vjUo9gBJsoRrL5m3cejTY11A..'
   ajax_secret_key: 'hzsdLMiP4QZHnAoMwiNKQZD9J'
+
 
 
