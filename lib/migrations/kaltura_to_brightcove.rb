@@ -166,7 +166,7 @@ suppress_warnings do
 
       logger.info "push thumbnail: #{kaltura_video.thumbnail_url}"
       begin
-        brightcove = Brightcove::API.new('UrtRUKydo_-euJRWBvFRmVh6Fme2vi9RuT9bLvEu9cmrN_3UUSoSFg..')
+        brightcove = Brightcove::API.new(brightcove_write_token)
         response = brightcove.post('add_image',
           thumbnail_json = {
             image: {
