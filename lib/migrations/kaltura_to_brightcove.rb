@@ -55,8 +55,24 @@ class ExpKalturaVideo < ActiveRecord::Base
 end
 ExpKalturaVideo.establish_connection(cds)
 
-class Video < ActiveRecord::Base; self.table_name = 'video'; end
+class Tag < ActiveRecord::Base
+  self.table_name = 'tag'
+  self.inheritance_column = :_type_disabled
+end
+class VideoTag < ActiveRecord::Base
+  self.table_name = 'video_tag'
+  belongs_to :video
+  has_one :tag, foreign_key: :id, primary_key: :tag_id
+end
+class Video < ActiveRecord::Base
+  self.table_name = 'video'
+  has_many :video_tags
+  has_many :tags, foreign_key: :id, primary_key: :tag_id, through: :video_tags
+end
 Video.establish_connection(riff)
+VideoTag.establish_connection(riff)
+Tag.establish_connection(riff)
+
 class CdsRiffSync < ActiveRecord::Base
   self.table_name = 'cds_riff_sync'
   def self.kaltura_to_brightcove
@@ -79,6 +95,8 @@ video_formats = {
 # to find in Brightcove, go to Account Settings > API Management
 brightcove_write_token = 'C9gRFSOKF0rsirAqGPHdW-OBtt2Xc6vjsXJ43INEhkW4IfSlbD1sdg..'
 bucket_name = 'jukinvideo_unit_tests'
+aws_access_key_id = 'AKIAJMQ5TKXQLCVL5HJA'
+aws_secret_access_key = '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'
 work_queue = WorkQueue.new 1
 
 module Kernel
@@ -96,7 +114,7 @@ suppress_warnings do
   logger.info " Videos with brightcove_video_id: #{Video.where.not(brightcove_video_id: nil).count}"
   kaltura_to_brightcove_last_sync = CdsRiffSync.kaltura_to_brightcove.last_sync
   logger.info " CdsRiffSync.kaltura_to_brightcove.last_sync: #{CdsRiffSync.kaltura_to_brightcove.last_sync}"
-  kaltura_videos_to_process = ExpKalturaVideo.with_channel_data.where("updated_at > ? ", kaltura_to_brightcove_last_sync).order('updated_at ASC').limit(10)
+  kaltura_videos_to_process = ExpKalturaVideo.with_channel_data.where("updated_at > ? ", kaltura_to_brightcove_last_sync).order('updated_at ASC').limit(50).offset(20)
   logger.info " ExpKalturaVideos to process: #{kaltura_videos_to_process.count}"
 
   kaltura_videos_to_process.each do |kaltura_video|
@@ -127,15 +145,20 @@ suppress_warnings do
           File.rename "#{Dir.pwd}/tmp/#{kaltura_video_name}", "#{Dir.pwd}/tmp/#{name_with_suffix}"
 
           full_path = "#{Dir.pwd}/tmp/#{name_with_suffix}"
-          s3 = AWS::S3.new access_key_id: 'AKIAJMQ5TKXQLCVL5HJA', secret_access_key: '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'
+          s3 = AWS::S3.new access_key_id: aws_access_key_id, secret_access_key: aws_secret_access_key
           logger.info "S3 upload: #{full_path}"
           s3.buckets[bucket_name].objects[name_with_suffix].write(Pathname.new(full_path))
 
           brightcove = Brightcove::API.new(brightcove_write_token)
-          logger.info "Brightcove transfer: #{full_path}"
+          logger.info "Brightcove transfer: #{full_path} tags: #{riff_video.tags.pluck(:name)}"
           response = brightcove.post_file('create_video', full_path,
                         create_multiple_renditions: true,
-                        video: {referenceId: riff_video_id, shortDescription: "#{kaltura_video.description[0..249]}", name: "#{name_with_suffix}"}
+                        video: {referenceId: riff_video_id,
+                                tags: riff_video.tags.pluck(:name),
+                                longDescription: kaltura_video.description,
+                                shortDescription: name_with_suffix,
+                                name: kaltura_video.name
+                               }
           )
           if response['error'] != nil
             logger.error "ERROR: POST of #{name_with_suffix} error: #{response.to_s}"
@@ -159,6 +182,27 @@ suppress_warnings do
           logger.info response # which has the brightcove_video_id
           File.delete full_path
         end # if riff_video.brightcove_video_id.nil?
+      rescue Exception => e
+        logger.error e
+        exit
+      end
+
+      logger.info "S3 upload thumbnail: #{kaltura_video.thumbnail_url}"
+      begin
+        kaltura_video_name = "kaltura#{kaltura_video.id}"
+        File.open("tmp/#{kaltura_video_name}",'wb') do |saved_file|
+          open(kaltura_video.thumbnail_url, "rb") do |read_file|
+            meta = read_file.meta
+            saved_file.write(read_file.read)
+          end
+        end
+        name_with_suffix = "#{kaltura_video_name}.#{meta['content-type'].gsub(/^\w*\//, '')}"
+        full_path = "#{Dir.pwd}/tmp/#{name_with_suffix}"
+        logger.info "#{name_with_suffix} #{full_path}"
+        File.rename "#{Dir.pwd}/tmp/#{kaltura_video_name}", "#{Dir.pwd}/tmp/#{name_with_suffix}"
+        s3 = AWS::S3.new access_key_id: aws_access_key_id, secret_access_key: aws_secret_access_key
+        s3.buckets[bucket_name].objects[name_with_suffix].write(Pathname.new(full_path))
+        File.delete full_path
       rescue Exception => e
         logger.error e
         exit
