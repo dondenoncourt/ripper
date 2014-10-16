@@ -56,7 +56,7 @@ class RipperController < ApplicationController
         logger.info "File.delete tmp/#{params[:s3_video_key]}#{file_ext}"
         File.delete "tmp/#{params[:s3_video_key]}#{file_ext}"
         logger.info "File.rename tmp/#{params[:s3_video_key]}_no_audio#{file_ext}, tmp/#{params[:s3_video_key]}#{file_ext}"
-        File.rename "tmp/#{params[:s3_video_key]}_no_audio#{file_ext}", "tmp/#{params[:s3_video_key]}#{file_ext}"
+        File.rename "tmp/#{params[:s3_video_key]}_no_audio#{file_e`xt}", "tmp/#{params[:s3_video_key]}#{file_ext}"
       end
       s3 = AWS::S3.new
       bucket = s3.buckets[params[:bucket_name]] # 'jukinvideo_unit_tests'
@@ -72,33 +72,6 @@ class RipperController < ApplicationController
     end
   end
 
-  # to test from console:
-  # app.post '/ripper/watermark/jukinvideo_unit_tests/--don_test.mp4', {'ajax_key' => 'hzsdLMiP4QZHnAoMwiNKQZD9J'}
-  def watermark
-    filename = "#{params[:s3_video_key]}.#{params[:format]}"
-    s3 = AWS::S3.new
-    bucket = s3.buckets[params[:bucket_name]] # 'jukinvideo_unit_tests'
-    if !bucket.exists?
-      render json: {error: "S3 bucket called #{params[:bucket_name]} does not exist"}, status: 404
-      return
-    end
-    video_to_watermark = bucket.objects[filename]
-    if !video_to_watermark.exists?
-      render json: {error: "S3 bucket called #{params[:bucket_name]} with key: #{filename} does not exist"}, status: 404
-      return
-    end
-    File.open("#{Dir.pwd}/tmp/#{filename}", 'wb') do |file|
-      video_to_watermark.read do |chunk|
-        file.write(chunk)
-      end
-    end
-    watermark_video filename
-    watermarked_filename =  "#{params[:s3_video_key]}_wm.#{params[:format]}"
-    bucket.objects[watermarked_filename].write(Pathname.new("#{Dir.pwd}/tmp/#{watermarked_filename}"))
-    File.delete "#{Dir.pwd}/tmp/#{watermarked_filename}"
-    File.delete "#{Dir.pwd}/tmp/#{filename}"
-    render json: {error: nil}, status: 200
-  end
   # PUT /ripper/1
   def update
     render text: 'put request #{params[:id]}'

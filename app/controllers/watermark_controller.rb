@@ -10,6 +10,7 @@ class WatermarkController < ApplicationController
   # to test from console:
   #     app.post '/ripper/watermark/jukinvideo_unit_tests/--don_test.mp4', {'ajax_key' => 'hzsdLMiP4QZHnAoMwiNKQZD9J'}
   def create
+puts params
     filename = "#{params[:s3_video_key]}.#{params[:format]}"
     s3 = AWS::S3.new
     bucket = s3.buckets[params[:bucket_name]] # 'jukinvideo_unit_tests'
@@ -33,6 +34,8 @@ class WatermarkController < ApplicationController
     File.delete "#{Dir.pwd}/tmp/#{watermarked_filename}"
     File.delete "#{Dir.pwd}/tmp/#{filename}"
     render json: {error: nil}, status: 200
+  rescue Exception => e
+    render json: {error: e.to_s}, status: 500
   end
   # PUT /ripper/1
   def update
