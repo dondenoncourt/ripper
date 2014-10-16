@@ -20,6 +20,7 @@ module RipperHelper
       end
     end
     ffmpeg = "ffmpeg -i #{Dir.pwd}/tmp/#{filename} -i #{Dir.pwd}/app/assets/images/Watermark-JukinVideo-#{watermark_height}.png -filter_complex \"overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2\" -codec:a copy ./tmp/#{file_prefix}_wm#{file_ext}"
+    puts ffmpeg
     Open3.popen3(ffmpeg) do |stdin, stdout, stderr, wait_thr|
       puts "stdout: #{stdout.read}"
     end
