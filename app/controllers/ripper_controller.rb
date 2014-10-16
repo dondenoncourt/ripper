@@ -56,7 +56,7 @@ class RipperController < ApplicationController
         logger.info "File.delete tmp/#{params[:s3_video_key]}#{file_ext}"
         File.delete "tmp/#{params[:s3_video_key]}#{file_ext}"
         logger.info "File.rename tmp/#{params[:s3_video_key]}_no_audio#{file_ext}, tmp/#{params[:s3_video_key]}#{file_ext}"
-        File.rename "tmp/#{params[:s3_video_key]}_no_audio#{file_e`xt}", "tmp/#{params[:s3_video_key]}#{file_ext}"
+        File.rename "tmp/#{params[:s3_video_key]}_no_audio#{file_ext}", "tmp/#{params[:s3_video_key]}#{file_ext}"
       end
       s3 = AWS::S3.new
       bucket = s3.buckets[params[:bucket_name]] # 'jukinvideo_unit_tests'
