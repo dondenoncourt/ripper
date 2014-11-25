@@ -17,7 +17,7 @@ class RipperHelperTest < ActionView::TestCase
         file.write(chunk)
       end
     end
-    watermark(s3_video_key)
+    watermark_video(s3_video_key)
     assert File.exists?("#{Dir.pwd}/tmp/--don_test_wm.mp4")
   end
 end
