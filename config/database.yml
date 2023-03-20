@@ -22,11 +22,9 @@ test:
 production:
   adapter:   'postgresql'
   username:  'newjukin'
-  password:  'JHsc9tekvj'
-  database:  'jukinvideo'
-  host: 'newjukingm2.cdrlveumgn4e.us-west-1.rds.amazonaws.com' # dev2
-#  host: 'newjukindev.cdrlveumgn4e.us-west-1.rds.amazonaws.com' # test
-#  host: 'newjukinprod.cdrlveumgn4e.us-west-1.rds.amazonaws.com' # prod (real prod)
+  password:  'secret'
+  database:  'secret'
+  host: 'nothere' # dev2
   port:      '5432'
   reconnect: true
 
